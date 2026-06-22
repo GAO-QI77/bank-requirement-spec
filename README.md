@@ -28,8 +28,10 @@
 │       └── human-checklist.md        人工确认 Checklist（把关人用，不投喂模型）
 ├── tools/
 │   ├── consistency_check.py          内部一致性形式核验脚本
-│   └── build_skill.sh                校验 + 打包为 .skill
+│   ├── build_split_md.py             生成交行内部模型可导入的拆分版 .md
+│   └── build_skill.sh                校验 + 生成拆分版 .md + 打包为 .skill
 ├── dist/
+│   ├── bank-requirement-spec-split/  拆分版 Markdown skills（交行内部模型导入）
 │   └── bank-requirement-spec.skill   构建产物（可直接安装）
 └── EVALUATION.md                     测评报告（评估方法、发现、修复）
 ```
@@ -39,6 +41,12 @@
 ### 作为 Skill 安装
 把 `dist/bank-requirement-spec.skill` 安装到支持 Skill 的客户端（Claude.ai / Claude Code / Cowork）。
 
+### 作为交行内部模型 Markdown 导入
+把 `dist/bank-requirement-spec-split/*.md` 按编号全部上传到内部模型的技能/知识导入入口。每个文件都控制在 5500 字以内，并通过 `00-router.md` 串成整体：
+
+- A/B/C 档通用：`00 + 01 + 02 + 03 + 04 + 07`
+- 第三方合作类：在通用文件基础上额外导入并启用 `05 + 06`
+
 ### 作为方法论手动使用
 1. 读 `bank-requirement-spec/SKILL.md` 判定档位、是否第三方合作类
 2. 每轮调用时投喂：`core-engine.md` 第一部分模型规则 + 本轮模板 +（第三方时）`third-party.md` 对应章节 + 上一轮冻结基线
@@ -47,7 +55,8 @@
 ### 自行构建与校验
 ```bash
 python3 tools/consistency_check.py     # 跑内部一致性核验
-./tools/build_skill.sh                 # 校验通过后打包 dist/*.skill
+python3 tools/build_split_md.py        # 单独生成 dist/bank-requirement-spec-split/*.md
+./tools/build_skill.sh                 # 校验通过后生成拆分版 .md 并打包 dist/*.skill
 ```
 
 `consistency_check.py` 校验五类跨文件约束（占位符闭合、原因代码合法、第三方挂载章节齐全、六轮命名一致、版本号一致），落实了 skill 自身在残余风险表与一票否决项中长期建议、但原始交付缺失的"形式核验脚本"。
